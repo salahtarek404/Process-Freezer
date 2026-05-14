@@ -23,6 +23,36 @@ sys_getpid(void)
 }
 
 uint64
+sys_freeze(void)
+{
+    int pid;
+    struct proc *p;
+
+    argint(0, &pid);
+
+    for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+
+        if(p->pid == pid) {
+
+            if(p->state == FROZEN) {
+                release(&p->lock);
+                return -1;
+            }
+
+            p->state = FROZEN;
+
+            release(&p->lock);
+            return 0;
+        }
+
+        release(&p->lock);
+    }
+
+    return -1;
+}
+
+uint64
 sys_fork(void)
 {
   return kfork();
