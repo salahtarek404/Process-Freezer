@@ -656,6 +656,8 @@ either_copyin(void *dst, int user_src, uint64 src, uint64 len)
   }
 }
 
+
+
 // Print a process listing to console.  For debugging.
 // Runs when user types ^P on console.
 // No lock to avoid wedging a stuck machine further.
@@ -684,4 +686,32 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+
+int
+freeze_process(int pid)
+{
+    struct proc *p;
+
+    for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+
+        if(p->pid == pid) {
+
+            if(p->state == FROZEN) {
+                release(&p->lock);
+                return -1;
+            }
+
+            p->state = FROZEN;
+
+            release(&p->lock);
+            return 0;
+        }
+
+        release(&p->lock);
+    }
+
+    return -1;
 }
