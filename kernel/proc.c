@@ -492,7 +492,8 @@ yield(void)
 {
   struct proc *p = myproc();
   acquire(&p->lock);
-  p->state = RUNNABLE;
+  if(p->state == RUNNING)
+    p->state = RUNNABLE;
   sched();
   release(&p->lock);
 }
@@ -670,7 +671,8 @@ procdump(void)
   [SLEEPING]  "sleep ",
   [RUNNABLE]  "runble",
   [RUNNING]   "run   ",
-  [ZOMBIE]    "zombie"
+  [ZOMBIE]    "zombie",
+  [FROZEN]    "frozen"
   };
   struct proc *p;
   char *state;
@@ -689,29 +691,67 @@ procdump(void)
 }
 
 
+// Mark the process with the given pid as FROZEN.
+// Saves the previous scheduling state in p->prev_state so resume_process()
+// can restore it (this matters for processes that were SLEEPING, since
+// wakeup() only re-runs SLEEPING processes that match a channel).
+// Returns 0 on success, -1 on error (bad pid, target is self, target is
+// init, or target is already FROZEN/ZOMBIE/UNUSED).
 int
 freeze_process(int pid)
 {
-    struct proc *p;
+  struct proc *p;
 
-    for(p = proc; p < &proc[NPROC]; p++) {
-        acquire(&p->lock);
-
-        if(p->pid == pid) {
-
-            if(p->state == FROZEN) {
-                release(&p->lock);
-                return -1;
-            }
-
-            p->state = FROZEN;
-
-            release(&p->lock);
-            return 0;
-        }
-
-        release(&p->lock);
-    }
-
+  if(pid <= 1 || pid == myproc()->pid)
     return -1;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->pid == pid){
+      if(p->state == FROZEN || p->state == ZOMBIE || p->state == UNUSED){
+        release(&p->lock);
+        return -1;
+      }
+      p->prev_state = p->state;
+      p->state = FROZEN;
+      release(&p->lock);
+      return 0;
+    }
+    release(&p->lock);
+  }
+  return -1;
+}
+
+// Resume a previously FROZEN process by restoring its prior scheduling
+// state. A previously SLEEPING process goes back to SLEEPING with its
+// original chan intact; a previously RUNNABLE/RUNNING process becomes
+// RUNNABLE so the scheduler can pick it up.
+// Returns 0 on success, -1 if pid is invalid or not currently FROZEN.
+int
+resume_process(int pid)
+{
+  struct proc *p;
+
+  if(pid <= 0)
+    return -1;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->pid == pid){
+      if(p->state != FROZEN){
+        release(&p->lock);
+        return -1;
+      }
+      // A process that was RUNNING when frozen can't resume to RUNNING
+      // directly — let the scheduler re-pick it.
+      if(p->prev_state == RUNNING)
+        p->state = RUNNABLE;
+      else
+        p->state = p->prev_state;
+      release(&p->lock);
+      return 0;
+    }
+    release(&p->lock);
+  }
+  return -1;
 }

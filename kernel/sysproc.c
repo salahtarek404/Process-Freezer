@@ -25,12 +25,19 @@ sys_getpid(void)
 uint64
 sys_freeze(void)
 {
-    int pid;
-
-    argint(0, &pid);
-
-    return freeze_process(pid);
+  int pid;
+  argint(0, &pid);
+  return freeze_process(pid);
 }
+
+uint64
+sys_resume(void)
+{
+  int pid;
+  argint(0, &pid);
+  return resume_process(pid);
+}
+
 uint64
 sys_fork(void)
 {
