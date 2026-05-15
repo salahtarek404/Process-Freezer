@@ -9,8 +9,14 @@ main(int argc, char *argv[])
 
     pid = fork();
 
+    if(pid < 0){
+        printf("Fork failed\n");
+        exit(1);
+    }
+
     if(pid == 0){
 
+        // Child process
         while(1){
             printf("Child running...\n");
 
@@ -19,13 +25,22 @@ main(int argc, char *argv[])
 
     } else {
 
+        // Parent process
         for(i = 0; i < 100000000; i++);
 
         printf("Freezing child process %d\n", pid);
 
         freeze(pid);
 
-        while(1);
+        for(i = 0; i < 100000000; i++);
+
+        printf("Resuming child process %d\n", pid);
+
+        resume(pid);
+
+        while(1){
+            for(i = 0; i < 100000000; i++);
+        }
     }
 
     exit(0);

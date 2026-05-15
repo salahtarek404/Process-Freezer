@@ -114,3 +114,14 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+
+uint64
+sys_resume(void)
+{
+    int pid;
+
+    argint(0, &pid);
+
+    return resume_process(pid);
+}

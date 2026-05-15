@@ -26,6 +26,7 @@ int pause(int);
 int uptime(void);
 int sleep(int);
 int freeze(int);
+int resume(int);
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);
