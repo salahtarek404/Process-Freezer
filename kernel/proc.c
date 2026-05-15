@@ -492,7 +492,11 @@ yield(void)
 {
   struct proc *p = myproc();
   acquire(&p->lock);
+  
+  if(p->state != FROZEN)
   p->state = RUNNABLE;
+  
+  
   sched();
   release(&p->lock);
 }
@@ -703,8 +707,8 @@ freeze_process(int pid)
                 release(&p->lock);
                 return -1;
             }
-
-            p->state = FROZEN;
+             if(p->state != FROZEN || p->state !=RUNNABLE)
+              p->state = FROZEN;
 
             release(&p->lock);
             return 0;
