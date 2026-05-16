@@ -1,23 +1,178 @@
+// user/testfreeze.c
+// Stable xv6 Freeze/Resume Demo & Validation
+// Designed specifically for current project implementation
+
 #include "kernel/types.h"
+#include "kernel/stat.h"
 #include "user/user.h"
 
-int
-main(int argc, char *argv[]){
-    int pid;
-    volatile int i;
-    pid = fork();
+static int passed = 0;
+static int failed = 0;
 
-    if(pid == 0){
-        while(1){
-            printf("Child running...\n");
-            for(i = 0; i < 100000000; i++);
-        }
-    } else {
-        for(i = 0; i < 100000000; i++);
-        printf("Freezing child process %d\n", pid);
-        freeze(pid);
-        while(1);
+// --------------------------------------------------
+// Helper
+// --------------------------------------------------
+
+void
+check(char *msg, int condition)
+{
+  if(condition){
+    printf("[PASS] %s\n", msg);
+    passed++;
+  } else {
+    printf("[FAIL] %s\n", msg);
+    failed++;
+  }
+}
+
+// --------------------------------------------------
+// Busy Delay
+// --------------------------------------------------
+
+void
+delay(void)
+{
+  volatile int i;
+
+  for(i = 0; i < 100000000; i++);
+}
+
+// --------------------------------------------------
+// Test 1
+// Invalid PID
+// --------------------------------------------------
+
+void
+test_invalid_pid(void)
+{
+  printf("\n=== Test 1: Invalid PID ===\n");
+
+  check("freeze(-1)", freeze(-1) == -1);
+
+  check("freeze(9999)", freeze(9999) == -1);
+
+  check("resume(-1)", resume(-1) == -1);
+
+  check("resume(9999)", resume(9999) == -1);
+}
+
+// --------------------------------------------------
+// Test 2
+// Basic Freeze/Resume
+// --------------------------------------------------
+
+void
+test_basic_freeze_resume(void)
+{
+  printf("\n=== Test 2: Basic Freeze/Resume ===\n");
+
+  int pid = fork();
+
+  if(pid < 0){
+    printf("fork failed\n");
+    exit(1);
+  }
+
+  // Child
+  if(pid == 0){
+
+    while(1){
+      printf("Child running...\n");
+      delay();
     }
+  }
 
-    exit(0);
+  // Parent
+  delay();
+
+  check("freeze(child)", freeze(pid) == 0);
+
+  printf("Child should stop printing now...\n");
+
+  delay();
+
+  check("resume(child)", resume(pid) == 0);
+
+  printf("Child should resume printing now...\n");
+
+  delay();
+
+  kill(pid);
+
+  wait(0);
+}
+
+// --------------------------------------------------
+// Test 3
+// Double Freeze
+// --------------------------------------------------
+
+void
+test_double_freeze(void)
+{
+  printf("\n=== Test 3: Double Freeze ===\n");
+
+  int pid = fork();
+
+  if(pid == 0){
+
+    while(1){
+      delay();
+    }
+  }
+
+  delay();
+
+  check("first freeze()", freeze(pid) == 0);
+
+  check("second freeze()", freeze(pid) == -1);
+
+  resume(pid);
+
+  kill(pid);
+
+  wait(0);
+}
+
+
+
+// --------------------------------------------------
+// Summary
+// --------------------------------------------------
+
+void
+summary(void)
+{
+  printf("\n====================================\n");
+  printf("Tests Passed: %d\n", passed);
+  printf("Tests Failed: %d\n", failed);
+  printf("====================================\n");
+}
+
+// --------------------------------------------------
+// Main
+// --------------------------------------------------
+
+int
+main(void)
+{
+  printf("\n====================================\n");
+  printf("      xv6 Freeze/Resume Tests\n");
+  printf("====================================\n");
+
+  test_invalid_pid();
+
+  test_basic_freeze_resume();
+
+  test_double_freeze();
+
+  test_double_resume();
+
+  test_multiple_cycles();
+
+  test_multiple_processes();
+
+  summary();
+
+  exit(0);
 }
