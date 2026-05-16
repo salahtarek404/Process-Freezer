@@ -75,7 +75,6 @@ test_basic_freeze_resume(void)
 
   // Child
   if(pid == 0){
-
     while(1){
       printf("Child running...\n");
       delay();
@@ -115,7 +114,6 @@ test_double_freeze(void)
   int pid = fork();
 
   if(pid == 0){
-
     while(1){
       delay();
     }
@@ -147,7 +145,6 @@ test_double_resume(void)
   int pid = fork();
 
   if(pid == 0){
-
     while(1){
       delay();
     }
@@ -179,7 +176,6 @@ test_multiple_cycles(void)
   int pid = fork();
 
   if(pid == 0){
-
     while(1){
       delay();
     }
@@ -190,7 +186,6 @@ test_multiple_cycles(void)
   int ok = 1;
 
   for(int i = 0; i < 3; i++){
-
     if(freeze(pid) != 0){
       ok = 0;
       break;
@@ -211,6 +206,55 @@ test_multiple_cycles(void)
   kill(pid);
 
   wait(0);
+}
+
+// --------------------------------------------------
+// Test 6
+// Many Processes
+// --------------------------------------------------
+
+void
+test_multiple_processes(void)
+{
+  printf("\n=== Test 6: Multiple Processes ===\n");
+
+#define NPROCS 4
+
+  int pids[NPROCS];
+  int ok1 = 1;
+  int ok2 = 1;
+
+  for(int i = 0; i < NPROCS; i++){
+    pids[i] = fork();
+    if(pids[i] == 0){
+      while(1){
+        delay();
+      }
+    }
+  }
+
+  delay();
+
+  for(int i = 0; i < NPROCS; i++){
+    if(freeze(pids[i]) != 0)
+      ok1 = 0;
+  }
+
+  check("freeze multiple processes", ok1);
+
+  delay();
+
+  for(int i = 0; i < NPROCS; i++){
+    if(resume(pids[i]) != 0)
+      ok2 = 0;
+  }
+
+  check("resume multiple processes", ok2);
+  
+  for(int i = 0; i < NPROCS; i++){
+    kill(pids[i]);
+    wait(0);
+  }
 }
 
 // --------------------------------------------------
