@@ -717,3 +717,31 @@ freeze_process(int pid)
 
     return -1;
 }
+
+
+int
+resume_process(int pid)
+{
+    struct proc *p;
+
+    for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+
+        if(p->pid == pid) {
+
+            if(p->state != FROZEN) {
+                release(&p->lock);
+                return -1;
+            }
+
+            p->state = RUNNABLE;
+
+            release(&p->lock);
+            return 0;
+        }
+
+        release(&p->lock);
+    }
+
+    return -1;
+}
