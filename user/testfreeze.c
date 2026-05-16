@@ -134,7 +134,84 @@ test_double_freeze(void)
   wait(0);
 }
 
+// --------------------------------------------------
+// Test 4
+// Double Resume
+// --------------------------------------------------
 
+void
+test_double_resume(void)
+{
+  printf("\n=== Test 4: Double Resume ===\n");
+
+  int pid = fork();
+
+  if(pid == 0){
+
+    while(1){
+      delay();
+    }
+  }
+
+  delay();
+
+  freeze(pid);
+
+  check("first resume()", resume(pid) == 0);
+
+  check("second resume()", resume(pid) == -1);
+
+  kill(pid);
+
+  wait(0);
+}
+
+// --------------------------------------------------
+// Test 5
+// Multiple Freeze/Resume Cycles
+// --------------------------------------------------
+
+void
+test_multiple_cycles(void)
+{
+  printf("\n=== Test 5: Multiple Freeze/Resume Cycles ===\n");
+
+  int pid = fork();
+
+  if(pid == 0){
+
+    while(1){
+      delay();
+    }
+  }
+
+  delay();
+
+  int ok = 1;
+
+  for(int i = 0; i < 3; i++){
+
+    if(freeze(pid) != 0){
+      ok = 0;
+      break;
+    }
+
+    delay();
+
+    if(resume(pid) != 0){
+      ok = 0;
+      break;
+    }
+
+    delay();
+  }
+
+  check("3 freeze/resume cycles", ok);
+
+  kill(pid);
+
+  wait(0);
+}
 
 // --------------------------------------------------
 // Summary
